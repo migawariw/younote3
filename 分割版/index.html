@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>Clipper</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body { margin: 0; padding: 16px; font-family: sans-serif; font-size: 16px; }
+    section { max-width: 800px; margin: auto; position: relative; }
+    [hidden] { display: none; }
+    input, button { font-size: 16px; margin: 4px 0; }
+    ul { padding-left: 0; }
+    li { list-style: none; padding: 8px; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; }
+    li:hover { background: #f5f5f5; }
+    #title { width: 100%; font-size: 20px; margin: 8px 0; border: none; padding: 0; box-sizing: border-box; }
+    #editor { min-height: 70vh; outline: none; white-space: pre-wrap; word-break: break-word; border-top: 1px solid #ccc; padding-top: 16px; }
+    img { max-width: 100%; display: block; margin: 8px 0; }
+    .video { position: relative; width: 100%; padding-top: 56.25%; margin: 12px auto; }
+    .video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+    @media (max-width: 768px) { .video { max-width: 100%; } }
+    .memo-right { display: flex; align-items: center; gap: 8px; }
+    .delete-btn { background: none; border: none; color: red; cursor: pointer; font-size: 16px; }
+    #user-icon { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; }
+    #list-header { display: flex; justify-content: space-between; align-items: center; }
+  </style>
+</head>
+<body>
+
+<!-- 🔐 Login -->
+<section id="view-login">
+  <h2>Login</h2>
+  <input id="email" placeholder="email"><br>
+  <input id="password" type="password" placeholder="password"><br>
+  <button id="login">Login</button>
+  <button id="signup">Sign up</button><br><br>
+  <button id="google-login">Login with Google</button>
+</section>
+
+<!-- 📂 List -->
+<section id="view-list" hidden>
+  <div id="list-header">
+    <h2>Memos</h2>
+    <img id="user-icon" src="" title="Logout">
+  </div>
+  <button id="new-memo">＋ New memo</button>
+  <ul id="memo-list"></ul>
+</section>
+
+<!-- ✏️ Editor -->
+<section id="view-editor" hidden>
+  <button id="back">←</button>
+  <input id="title" placeholder="">
+  <div id="editor" contenteditable="true"></div>
+</section>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
