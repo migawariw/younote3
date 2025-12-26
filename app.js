@@ -49,18 +49,30 @@ function show(view){
 
 /* ---------- Navigation ---------- */
 function navigateTo(view, memoId=null){
-  if(view==='editor'){ location.hash = `#/editor/${memoId}`; openEditor(memoId,false);}
-  else if(view==='list'){ location.hash='#/list'; loadMemos(); show('list');}
-  else location.hash='#/';
+  if(view==='editor'){
+    location.hash = `#/editor/${memoId}`;
+    openEditor(memoId,false);
+  } else if(view==='list'){
+    location.hash = '#/list';
+    show('list');
+  } else {
+    location.hash = '#/';
+    show('login');
+  }
 }
 
 /* ---------- Hash change ---------- */
 window.addEventListener('hashchange', ()=>{
   const hash = location.hash;
   if(hash.startsWith('#/editor/')){
-    const id = hash.split('/')[2]; openEditor(id,false);
-  } else if(hash==='#/list'){ loadMemos(); show('list'); }
-  else show('login');
+    const id = hash.split('/')[2]; 
+    openEditor(id,false);
+  } else if(hash === '#/list'){
+    loadMemos();
+    show('list');
+  } else {
+    show('login');
+  }
 });
 
 /* ---------- Page load ---------- */
@@ -73,10 +85,16 @@ document.getElementById('login').onclick = ()=> signInWithEmailAndPassword(auth,
 document.getElementById('signup').onclick = ()=> createUserWithEmailAndPassword(auth,emailInput.value,passwordInput.value);
 
 const provider = new GoogleAuthProvider();
-document.getElementById('google-login').onclick = async()=>{ try{ await signInWithPopup(auth,provider);} catch(e){ alert("エラー\n"+e.code);}}
+document.getElementById('google-login').onclick = async()=>{ 
+  try{ await signInWithPopup(auth,provider);} 
+  catch(e){ alert("エラー\n"+e.code);}
+}
 
 // アイコンでアカウント切り替え
-userIcon.onclick = async()=>{ try{ await signInWithPopup(auth,provider);} catch(e){ alert("アカウント切替失敗\n"+e.code);}}
+userIcon.onclick = async()=>{ 
+  try{ await signInWithPopup(auth,provider);} 
+  catch(e){ alert("アカウント切替失敗\n"+e.code);}
+}
 
 /* ---------- State ---------- */
 let currentMemoId = null;
@@ -93,12 +111,16 @@ onAuthStateChanged(auth,user=>{
 
 /* ---------- Load list ---------- */
 async function loadMemos(){
+  // 二重表示防止
   memoList.innerHTML='';
+
   const q = query(collection(db,'users',auth.currentUser.uid,'memos'), orderBy('updated','desc'));
   const snap = await getDocs(q);
   snap.forEach(d=>{
     const data=d.data();
     const li=document.createElement('li');
+
+    // 右側に日付と削除ボタン
     const rightDiv=document.createElement('div'); rightDiv.className='memo-right';
     const dateSpan=document.createElement('span'); dateSpan.textContent=new Date(data.updated).toLocaleString();
     const delBtn=document.createElement('button'); delBtn.className='delete-btn'; delBtn.textContent='🗑';
@@ -108,6 +130,7 @@ async function loadMemos(){
       li.remove();
       showToast('メモを削除しました');
     }
+
     rightDiv.append(dateSpan,delBtn);
     li.textContent = data.title || 'Untitled';
     li.appendChild(rightDiv);
