@@ -32,18 +32,26 @@ const memoList = document.getElementById('memo-list');
 const editor = document.getElementById('editor');
 const titleInput = document.getElementById('title');
 const userIcon = document.getElementById('user-icon');
+const toast = document.getElementById('toast');
+
+/* ---------- Toast ---------- */
+function showToast(msg, duration=2000){
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(()=>toast.classList.remove('show'),duration);
+}
 
 /* ---------- View ---------- */
-function show(view) {
-  Object.values(views).forEach(v => v.hidden = true);
-  views[view].hidden = false;
+function show(view){
+  Object.values(views).forEach(v=>v.hidden=true);
+  views[view].hidden=false;
 }
 
 /* ---------- Navigation ---------- */
-function navigateTo(view, memoId = null){
-  if(view==='editor'){ location.hash=`#/editor/${memoId}`; openEditor(memoId,false);}
+function navigateTo(view, memoId=null){
+  if(view==='editor'){ location.hash = `#/editor/${memoId}`; openEditor(memoId,false);}
   else if(view==='list'){ location.hash='#/list'; loadMemos(); show('list');}
-  else if(view==='login'){ location.hash='#/'; show('login');}
+  else location.hash='#/';
 }
 
 /* ---------- Hash change ---------- */
@@ -65,16 +73,10 @@ document.getElementById('login').onclick = ()=> signInWithEmailAndPassword(auth,
 document.getElementById('signup').onclick = ()=> createUserWithEmailAndPassword(auth,emailInput.value,passwordInput.value);
 
 const provider = new GoogleAuthProvider();
-document.getElementById('google-login').onclick = async()=>{
-  try{ await signInWithPopup(auth,provider); } 
-  catch(e){ alert("エラーです\n\n"+e.code); console.log(e);}
-}
+document.getElementById('google-login').onclick = async()=>{ try{ await signInWithPopup(auth,provider);} catch(e){ alert("エラー\n"+e.code);}}
 
 // アイコンでアカウント切り替え
-userIcon.onclick = async ()=>{
-  try{ await signInWithPopup(auth,provider); } 
-  catch(e){ alert("アカウント切り替え失敗\n\n"+e.code);}
-}
+userIcon.onclick = async()=>{ try{ await signInWithPopup(auth,provider);} catch(e){ alert("アカウント切替失敗\n"+e.code);}}
 
 /* ---------- State ---------- */
 let currentMemoId = null;
@@ -85,7 +87,7 @@ onAuthStateChanged(auth,user=>{
     if(user.photoURL) userIcon.src=user.photoURL;
     if(location.hash.startsWith('#/editor/')){
       const id = location.hash.split('/')[2]; openEditor(id);
-    } else { navigateTo('list'); }
+    } else navigateTo('list');
   } else navigateTo('login');
 });
 
@@ -100,7 +102,12 @@ async function loadMemos(){
     const rightDiv=document.createElement('div'); rightDiv.className='memo-right';
     const dateSpan=document.createElement('span'); dateSpan.textContent=new Date(data.updated).toLocaleString();
     const delBtn=document.createElement('button'); delBtn.className='delete-btn'; delBtn.textContent='🗑';
-    delBtn.onclick=async(e)=>{ e.stopPropagation(); await deleteDoc(doc(db,'users',auth.currentUser.uid,'memos',d.id)); li.remove();}
+    delBtn.onclick=async(e)=>{
+      e.stopPropagation();
+      await deleteDoc(doc(db,'users',auth.currentUser.uid,'memos',d.id));
+      li.remove();
+      showToast('メモを削除しました');
+    }
     rightDiv.append(dateSpan,delBtn);
     li.textContent = data.title || 'Untitled';
     li.appendChild(rightDiv);
@@ -110,7 +117,7 @@ async function loadMemos(){
 }
 
 /* ---------- New memo ---------- */
-document.getElementById('new-memo').onclick=async()=>{
+document.getElementById('new-memo').onclick = async()=>{
   const ref=await addDoc(collection(db,'users',auth.currentUser.uid,'memos'),{title:'',content:'',updated:Date.now()});
   navigateTo('editor',ref.id);
 };
@@ -128,7 +135,7 @@ async function openEditor(id,pushState=true){
 }
 
 /* ---------- Back button ---------- */
-document.getElementById('back').onclick=()=>navigateTo('list');
+document.getElementById('back').onclick = ()=>navigateTo('list');
 
 /* ---------- Save ---------- */
 async function saveMemo(){
@@ -144,14 +151,14 @@ titleInput.addEventListener('input',saveMemo);
 document.addEventListener('click',(e)=>{ if(!e.target.closest('#editor')&&!e.target.closest('#title')) document.activeElement.blur(); });
 
 /* ---------- Paste & Link preview ---------- */
-editor.addEventListener('paste',async(e)=>{
+editor.addEventListener('paste', async(e)=>{
   e.preventDefault();
   const items = e.clipboardData.items;
   const range = document.getSelection().getRangeAt(0);
   for(const item of items){
     if(item.type.startsWith('image/')){
-      const reader=new FileReader();
-      reader.onload=()=>{ const img=document.createElement('img'); img.src=reader.result; range.insertNode(img); range.collapse(false);}
+      const reader = new FileReader();
+      reader.onload = ()=>{ const img=document.createElement('img'); img.src=reader.result; range.insertNode(img); range.collapse(false);}
       reader.readAsDataURL(item.getAsFile()); return;
     }
   }
