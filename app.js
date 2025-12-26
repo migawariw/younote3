@@ -2,11 +2,12 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
   getAuth, onAuthStateChanged,
-  signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut,
+  signInWithEmailAndPassword, createUserWithEmailAndPassword,
   GoogleAuthProvider, signInWithPopup
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import {
-  getFirestore, collection, addDoc, getDocs, doc, getDoc, setDoc, deleteDoc, query, orderBy
+  getFirestore, collection, addDoc, getDocs, doc, getDoc,
+  setDoc, deleteDoc, query, orderBy
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 /* ---------- Firebase 設定 ---------- */
@@ -39,19 +40,24 @@ function show(view) {
 }
 
 /* ---------- Navigation ---------- */
-function navigateTo(view, memoId = null) {
-  if(view==='editor') { history.pushState({view,memoId},'',`/editor/${memoId}`); openEditor(memoId,false); }
-  else if(view==='list') { history.pushState({view},'',`/list`); loadMemos(); show('list'); }
-  else if(view==='login') { history.pushState({view},'',`/`); show('login'); }
+function navigateTo(view, memoId = null){
+  if(view==='editor'){ location.hash=`#/editor/${memoId}`; openEditor(memoId,false);}
+  else if(view==='list'){ location.hash='#/list'; loadMemos(); show('list');}
+  else if(view==='login'){ location.hash='#/'; show('login');}
 }
 
-/* ---------- Browser back/forward ---------- */
-window.addEventListener('popstate',(e)=>{
-  const state=e.state;
-  if(!state) show('login');
-  else if(state.view==='list'){ loadMemos(); show('list'); }
-  else if(state.view==='editor'){ openEditor(state.memoId,false); }
-  else if(state.view==='login'){ show('login'); }
+/* ---------- Hash change ---------- */
+window.addEventListener('hashchange', ()=>{
+  const hash = location.hash;
+  if(hash.startsWith('#/editor/')){
+    const id = hash.split('/')[2]; openEditor(id,false);
+  } else if(hash==='#/list'){ loadMemos(); show('list'); }
+  else show('login');
+});
+
+/* ---------- Page load ---------- */
+window.addEventListener('load', ()=>{
+  if(location.hash) window.dispatchEvent(new Event('hashchange'));
 });
 
 /* ---------- Auth ---------- */
@@ -60,14 +66,14 @@ document.getElementById('signup').onclick = ()=> createUserWithEmailAndPassword(
 
 const provider = new GoogleAuthProvider();
 document.getElementById('google-login').onclick = async()=>{
-  try{ await signInWithPopup(auth,provider); }
+  try{ await signInWithPopup(auth,provider); } 
   catch(e){ alert("エラーです\n\n"+e.code); console.log(e);}
 }
 
-// アイコンをタップでアカウント切り替え
+// アイコンでアカウント切り替え
 userIcon.onclick = async ()=>{
-  try{ await signInWithPopup(auth,provider); }
-  catch(e){ alert("アカウント切り替え失敗\n\n"+e.code); }
+  try{ await signInWithPopup(auth,provider); } 
+  catch(e){ alert("アカウント切り替え失敗\n\n"+e.code);}
 }
 
 /* ---------- State ---------- */
@@ -77,8 +83,8 @@ let currentMemoId = null;
 onAuthStateChanged(auth,user=>{
   if(user){
     if(user.photoURL) userIcon.src=user.photoURL;
-    if(location.pathname.startsWith('/editor/')){
-      const id=location.pathname.split('/')[2]; openEditor(id);
+    if(location.hash.startsWith('#/editor/')){
+      const id = location.hash.split('/')[2]; openEditor(id);
     } else { navigateTo('list'); }
   } else navigateTo('login');
 });
@@ -92,18 +98,13 @@ async function loadMemos(){
     const data=d.data();
     const li=document.createElement('li');
     const rightDiv=document.createElement('div'); rightDiv.className='memo-right';
-    const dateSpan=document.createElement('span'); 
-    dateSpan.textContent=new Date(data.updated).toLocaleString();
+    const dateSpan=document.createElement('span'); dateSpan.textContent=new Date(data.updated).toLocaleString();
     const delBtn=document.createElement('button'); delBtn.className='delete-btn'; delBtn.textContent='🗑';
-    delBtn.onclick=async(e)=>{
-      e.stopPropagation();
-      await deleteDoc(doc(db,'users',auth.currentUser.uid,'memos',d.id));
-      li.remove(); // その場で削除
-    }
+    delBtn.onclick=async(e)=>{ e.stopPropagation(); await deleteDoc(doc(db,'users',auth.currentUser.uid,'memos',d.id)); li.remove();}
     rightDiv.append(dateSpan,delBtn);
-    li.textContent=data.title||'Untitled';
+    li.textContent = data.title || 'Untitled';
     li.appendChild(rightDiv);
-    li.onclick=()=>navigateTo('editor',d.id);
+    li.onclick = ()=>navigateTo('editor',d.id);
     memoList.appendChild(li);
   });
 }
@@ -123,7 +124,7 @@ async function openEditor(id,pushState=true){
   titleInput.value=data.title||'';
   editor.innerHTML=data.content||'';
   show('editor');
-  if(pushState) history.replaceState({view:'editor',memoId:id},'',`/editor/${id}`);
+  if(pushState) location.hash=`#/editor/${id}`;
 }
 
 /* ---------- Back button ---------- */
@@ -132,8 +133,8 @@ document.getElementById('back').onclick=()=>navigateTo('list');
 /* ---------- Save ---------- */
 async function saveMemo(){
   if(!currentMemoId) return;
-  let title=titleInput.value.trim();
-  if(!title) title=editor.innerText.split('\n')[0].trim()||'';
+  let title = titleInput.value.trim();
+  if(!title) title = editor.innerText.split('\n')[0].trim()||'';
   await setDoc(doc(db,'users',auth.currentUser.uid,'memos',currentMemoId),{title,content:editor.innerHTML,updated:Date.now()},{merge:true});
 }
 editor.addEventListener('input',saveMemo);
@@ -145,8 +146,8 @@ document.addEventListener('click',(e)=>{ if(!e.target.closest('#editor')&&!e.tar
 /* ---------- Paste & Link preview ---------- */
 editor.addEventListener('paste',async(e)=>{
   e.preventDefault();
-  const items=e.clipboardData.items;
-  const range=document.getSelection().getRangeAt(0);
+  const items = e.clipboardData.items;
+  const range = document.getSelection().getRangeAt(0);
   for(const item of items){
     if(item.type.startsWith('image/')){
       const reader=new FileReader();
@@ -154,8 +155,8 @@ editor.addEventListener('paste',async(e)=>{
       reader.readAsDataURL(item.getAsFile()); return;
     }
   }
-  const text=e.clipboardData.getData('text/plain');
-  const yt=text.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/);
+  const text = e.clipboardData.getData('text/plain');
+  const yt = text.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/);
   if(yt){
     const wrap=document.createElement('div'); wrap.className='video';
     const iframe=document.createElement('iframe'); iframe.src=`https://www.youtube-nocookie.com/embed/${yt[1]}?modestbranding=1&rel=0&playsinline=1`;
